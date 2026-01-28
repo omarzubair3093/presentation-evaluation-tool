@@ -135,7 +135,7 @@ RUBRIC:
 {json.dumps({k: v['description'] for k, v in rubric.items()}, indent=2)}
 
 USER INPUT DATA (JSON):
-{json.dumps(json_data, indent=2)[:3000]}  # Truncate if too long
+{json.dumps(json_data, indent=2)[:3000]}
 
 PRESENTATION CONTENT (First 2000 chars):
 {pdf_text[:2000]}
@@ -160,14 +160,17 @@ Respond in JSON format:
   "justifications": {{
     "user_input_quality": "...",
     "system_understanding": "...",
-    ...
+    "content_accuracy": "...",
+    "content_structure": "...",
+    "design_quality": "...",
+    "instruction_adherence": "..."
   }},
   "strengths": ["...", "...", "..."],
   "improvements": ["...", "...", "..."],
   "overall_assessment": "..."
 }}
 
-IMPORTANT: Respond ONLY with valid JSON, no other text."""
+CRITICAL: Respond with ONLY the JSON object above. No markdown, no code blocks, no explanations. Just pure JSON starting with {{ and ending with }}."""
 
     try:
         message = client.messages.create(
@@ -176,7 +179,17 @@ IMPORTANT: Respond ONLY with valid JSON, no other text."""
             messages=[{"role": "user", "content": prompt}]
         )
         
-        response_text = message.content[0].text
+        response_text = message.content[0].text.strip()
+        
+        # Remove markdown code blocks if present
+        if response_text.startswith('```'):
+            lines = response_text.split('\n')
+            # Remove first line (```json or ```)
+            lines = lines[1:]
+            # Remove last line if it's ```
+            if lines and lines[-1].strip() == '```':
+                lines = lines[:-1]
+            response_text = '\n'.join(lines).strip()
         
         # Calculate cost
         input_tokens = message.usage.input_tokens
@@ -184,7 +197,18 @@ IMPORTANT: Respond ONLY with valid JSON, no other text."""
         cost_usd = (input_tokens * 0.003 / 1000) + (output_tokens * 0.015 / 1000)
         
         # Parse response
-        evaluation = json.loads(response_text)
+        try:
+            evaluation = json.loads(response_text)
+        except json.JSONDecodeError as je:
+            print(f"JSON Parse Error: {str(je)}")
+            print(f"Response was: {response_text[:500]}")
+            raise
+        
+        # Validate that all required keys exist
+        required_keys = ['dimension_scores', 'justifications', 'strengths', 'improvements', 'overall_assessment']
+        for key in required_keys:
+            if key not in evaluation:
+                raise ValueError(f"Missing required key: {key}")
         
         return evaluation, cost_usd, input_tokens, output_tokens
         
@@ -193,10 +217,10 @@ IMPORTANT: Respond ONLY with valid JSON, no other text."""
         # Return default scores if API fails
         return {
             "dimension_scores": {dim: 75 for dim in rubric.keys()},
-            "justifications": {dim: "Evaluation pending" for dim in rubric.keys()},
-            "strengths": ["Evaluation in progress"],
-            "improvements": ["Evaluation in progress"],
-            "overall_assessment": f"Error during evaluation: {str(e)}"
+            "justifications": {dim: "Evaluation pending - API error occurred" for dim in rubric.keys()},
+            "strengths": ["Unable to complete evaluation due to API error"],
+            "improvements": ["Please try again or check API configuration"],
+            "overall_assessment": f"Evaluation could not be completed. Error: {str(e)}"
         }, 0, 0, 0
 
 def generate_evaluation_report(evaluation_data, presentation_filename, output_path):
@@ -206,7 +230,7 @@ def generate_evaluation_report(evaluation_data, presentation_filename, output_pa
     
     styles = getSampleStyleSheet()
     
-    # Use unique names to avoid conflicts with ReportLab defaults
+    # Use unique style names to avoid conflicts with ReportLab defaults
     if 'EvalReportTitle' not in styles:
         styles.add(ParagraphStyle(name='EvalReportTitle', parent=styles['Heading1'], 
                                  fontSize=18, alignment=TA_CENTER, spaceAfter=20))
@@ -422,6 +446,8 @@ def evaluate_presentation():
         
     except Exception as e:
         print(f"Evaluation error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/api/report/<int:eval_id>')
