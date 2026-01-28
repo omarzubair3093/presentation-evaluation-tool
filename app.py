@@ -125,7 +125,9 @@ def extract_text_from_pdf(pdf_path):
 
 def evaluate_with_claude(json_data, pdf_text, rubric):
     """Use Claude API to evaluate the presentation"""
-    client = anthropic.Anthropic(api_key=os.environ.get('ANTHROPIC_API_KEY'))
+    client = anthropic.Anthropic(
+        api_key=os.environ.get('ANTHROPIC_API_KEY')
+    )
     
     prompt = f"""You are an expert presentation evaluator. Analyze this presentation based on the following rubric:
 
@@ -203,20 +205,25 @@ def generate_evaluation_report(evaluation_data, presentation_filename, output_pa
                            rightMargin=60, leftMargin=60, topMargin=60, bottomMargin=40)
     
     styles = getSampleStyleSheet()
-    styles.add(ParagraphStyle(name='ReportTitle', parent=styles['Heading1'], 
-                             fontSize=18, alignment=TA_CENTER, spaceAfter=20))
-    styles.add(ParagraphStyle(name='SectionTitle', parent=styles['Heading2'], 
-                             fontSize=13, spaceAfter=10, spaceBefore=15))
-    styles.add(ParagraphStyle(name='BodyText', parent=styles['Normal'], 
-                             fontSize=9, alignment=TA_JUSTIFY, spaceAfter=8))
+    
+    # Use unique names to avoid conflicts with ReportLab defaults
+    if 'EvalReportTitle' not in styles:
+        styles.add(ParagraphStyle(name='EvalReportTitle', parent=styles['Heading1'], 
+                                 fontSize=18, alignment=TA_CENTER, spaceAfter=20))
+    if 'EvalSectionTitle' not in styles:
+        styles.add(ParagraphStyle(name='EvalSectionTitle', parent=styles['Heading2'], 
+                                 fontSize=13, spaceAfter=10, spaceBefore=15))
+    if 'EvalBodyText' not in styles:
+        styles.add(ParagraphStyle(name='EvalBodyText', parent=styles['Normal'], 
+                                 fontSize=9, alignment=TA_JUSTIFY, spaceAfter=8))
     
     story = []
     
     # Cover
     story.append(Spacer(1, 0.5*inch))
-    story.append(Paragraph("Presentation Evaluation Report", styles['ReportTitle']))
-    story.append(Paragraph(f"<b>Presentation:</b> {presentation_filename}", styles['BodyText']))
-    story.append(Paragraph(f"<b>Date:</b> {datetime.now().strftime('%B %d, %Y')}", styles['BodyText']))
+    story.append(Paragraph("Presentation Evaluation Report", styles['EvalReportTitle']))
+    story.append(Paragraph(f"<b>Presentation:</b> {presentation_filename}", styles['EvalBodyText']))
+    story.append(Paragraph(f"<b>Date:</b> {datetime.now().strftime('%B %d, %Y')}", styles['EvalBodyText']))
     story.append(Spacer(1, 0.3*inch))
     
     # Overall score
@@ -243,7 +250,7 @@ def generate_evaluation_report(evaluation_data, presentation_filename, output_pa
     story.append(PageBreak())
     
     # Dimension scores
-    story.append(Paragraph("Evaluation Scores by Dimension", styles['SectionTitle']))
+    story.append(Paragraph("Evaluation Scores by Dimension", styles['EvalSectionTitle']))
     
     eval_json = json.loads(evaluation_data['evaluation_json'])
     dimension_scores = eval_json['dimension_scores']
@@ -251,29 +258,29 @@ def generate_evaluation_report(evaluation_data, presentation_filename, output_pa
     
     for dimension, score in dimension_scores.items():
         dim_name = dimension.replace('_', ' ').title()
-        story.append(Paragraph(f"<b>{dim_name}:</b> {score}/100", styles['BodyText']))
+        story.append(Paragraph(f"<b>{dim_name}:</b> {score}/100", styles['EvalBodyText']))
         if dimension in justifications:
-            story.append(Paragraph(justifications[dimension], styles['BodyText']))
+            story.append(Paragraph(justifications[dimension], styles['EvalBodyText']))
         story.append(Spacer(1, 0.1*inch))
     
     story.append(PageBreak())
     
     # Strengths and improvements
-    story.append(Paragraph("Key Strengths", styles['SectionTitle']))
+    story.append(Paragraph("Key Strengths", styles['EvalSectionTitle']))
     for strength in eval_json.get('strengths', []):
-        story.append(Paragraph(f"✓ {strength}", styles['BodyText']))
+        story.append(Paragraph(f"✓ {strength}", styles['EvalBodyText']))
     
     story.append(Spacer(1, 0.2*inch))
     
-    story.append(Paragraph("Areas for Improvement", styles['SectionTitle']))
+    story.append(Paragraph("Areas for Improvement", styles['EvalSectionTitle']))
     for improvement in eval_json.get('improvements', []):
-        story.append(Paragraph(f"⚠ {improvement}", styles['BodyText']))
+        story.append(Paragraph(f"⚠ {improvement}", styles['EvalBodyText']))
     
     story.append(PageBreak())
     
     # Overall assessment
-    story.append(Paragraph("Overall Assessment", styles['SectionTitle']))
-    story.append(Paragraph(eval_json.get('overall_assessment', ''), styles['BodyText']))
+    story.append(Paragraph("Overall Assessment", styles['EvalSectionTitle']))
+    story.append(Paragraph(eval_json.get('overall_assessment', ''), styles['EvalBodyText']))
     
     doc.build(story)
 
