@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Presentation Evaluation Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: #f5f7fa;
+            color: #2c3e50;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px 0;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            font-size: 32px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+        
+        .subtitle {
+            opacity: 0.9;
+            font-size: 16px;
+        }
+        
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+        
+        .stat-label {
+            color: #7f8c8d;
+            font-size: 14px;
+        }
+        
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+            color: #7f8c8d;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+            font-weight: 600;
+        }
+        
+        .tab:hover {
+            color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #cbd5e0;
+            border-radius: 8px;
+            background: #f7fafc;
+            cursor: pointer;
+        }
+        
+        input[type="file"]:hover {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+        
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .table-container {
+            overflow-x: auto;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+        
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ecf0f1;
+        }
+        
+        th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+        
+        tr:hover {
+            background: #f8f9fa;
+        }
+        
+        .score-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        
+        .score-excellent { background: #d4edda; color: #155724; }
+        .score-good { background: #cce5ff; color: #004085; }
+        .score-satisfactory { background: #fff3cd; color: #856404; }
+        .score-needs-improvement { background: #ffe5d0; color: #974a00; }
+        .score-poor { background: #f8d7da; color: #721c24; }
+        
+        .progress-container {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background: #eef2ff;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .progress-container.active {
+            display: block;
+        }
+        
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .rubric-item {
+            background: #f8f9fa;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+        }
+        
+        .rubric-item input[type="number"] {
+            width: 80px;
+            padding: 8px;
+            border: 1px solid #cbd5e0;
+            border-radius: 4px;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        
+        .rubric-name {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #2c3e50;
+        }
+        
+        .rubric-desc {
+            color: #7f8c8d;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+        
+        .alert {
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border-left: 4px solid #28a745;
+        }
+        
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border-left: 4px solid #dc3545;
+        }
+        
+        .download-btn {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+        }
+        
+        .download-btn:hover {
+            text-decoration: underline;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #7f8c8d;
+        }
+        
+        .empty-state-icon {
+            font-size: 64px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📊 Presentation Evaluation Tool</h1>
+            <p class="subtitle">Evaluate AI-generated presentations with Claude</p>
+        </div>
+    </header>
+    
+    <div class="container">
+        <!-- Statistics Dashboard -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-value" id="total-evals">0</div>
+                <div class="stat-label">Total Evaluations</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="avg-score">0</div>
+                <div class="stat-label">Average Score</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="total-cost">$0.00</div>
+                <div class="stat-label">Total Cost</div>
+            </div>
+        </div>
+        
+        <!-- Navigation Tabs -->
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('evaluations')">Evaluated Presentations</button>
+            <button class="tab" onclick="switchTab('new')">New Evaluation</button>
+            <button class="tab" onclick="switchTab('rubric')">Rubric Settings</button>
+        </div>
+        
+        <!-- Evaluated Presentations Tab -->
+        <div id="evaluations-tab" class="tab-content active">
+            <h2 style="margin-bottom: 20px;">Evaluated Presentations</h2>
+            <div class="table-container">
+                <table id="evaluations-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>User Outline</th>
+                            <th>Preferences</th>
+                            <th>Doc Type</th>
+                            <th>Score</th>
+                            <th>Category</th>
+                            <th>Cost</th>
+                            <th>Report</th>
+                        </tr>
+                    </thead>
+                    <tbody id="evaluations-body">
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <div class="empty-state-icon">📄</div>
+                                <div>No evaluations yet. Upload your first presentation to get started!</div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- New Evaluation Tab -->
+        <div id="new-tab" class="tab-content">
+            <h2 style="margin-bottom: 20px;">Evaluate New Presentation</h2>
+            
+            <div id="alert-container"></div>
+            
+            <form id="evaluation-form">
+                <div class="form-group">
+                    <label for="json-file">JSON File (Required) *</label>
+                    <input type="file" id="json-file" accept=".json" required>
+                    <small style="color: #7f8c8d;">Upload the JSON file containing presentation metadata</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="pdf-file">PDF Presentation (Required) *</label>
+                    <input type="file" id="pdf-file" accept=".pdf" required>
+                    <small style="color: #7f8c8d;">Upload the generated presentation PDF</small>
+                </div>
+                
+                <div class="form-group">
+                    <label for="additional-files">Additional Files (Optional)</label>
+                    <input type="file" id="additional-files" multiple>
+                    <small style="color: #7f8c8d;">Any supporting documents (Excel, CSV, etc.)</small>
+                </div>
+                
+                <button type="submit" class="btn btn-primary" id="submit-btn">
+                    Evaluate Presentation
+                </button>
+            </form>
+            
+            <div id="progress-container" class="progress-container">
+                <div class="spinner"></div>
+                <div id="progress-text">Analyzing presentation with Claude...</div>
+                <div style="margin-top: 10px; color: #7f8c8d; font-size: 14px;">
+                    This may take 30-60 seconds
+                </div>
+            </div>
+        </div>
+        
+        <!-- Rubric Settings Tab -->
+        <div id="rubric-tab" class="tab-content">
+            <h2 style="margin-bottom: 20px;">Evaluation Rubric</h2>
+            <p style="margin-bottom: 20px; color: #7f8c8d;">
+                Customize the evaluation criteria weights. Total should equal 100%.
+            </p>
+            
+            <div id="rubric-container"></div>
+            
+            <button onclick="saveRubric()" class="btn btn-primary" style="margin-top: 20px;">
+                Save Rubric Changes
+            </button>
+            
+            <div style="margin-top: 20px; padding: 15px; background: #eef2ff; border-radius: 8px;">
+                <strong>Current Total Weight:</strong> <span id="total-weight">100</span>%
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Tab switching
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+            
+            if (tabName === 'evaluations') {
+                loadEvaluations();
+            } else if (tabName === 'rubric') {
+                loadRubric();
+            }
+        }
+        
+        // Load statistics
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const stats = await response.json();
+                
+                document.getElementById('total-evals').textContent = stats.total_evaluations;
+                document.getElementById('avg-score').textContent = stats.average_score;
+                document.getElementById('total-cost').textContent = `$${stats.total_cost_usd}`;
+            } catch (error) {
+                console.error('Error loading stats:', error);
+            }
+        }
+        
+        // Load evaluations
+        async function loadEvaluations() {
+            try {
+                const response = await fetch('/api/evaluations');
+                const evaluations = await response.json();
+                
+                const tbody = document.getElementById('evaluations-body');
+                
+                if (evaluations.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="8" class="empty-state">
+                                <div class="empty-state-icon">📄</div>
+                                <div>No evaluations yet. Upload your first presentation to get started!</div>
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+                
+                tbody.innerHTML = evaluations.map(eval => {
+                    const date = new Date(eval.created_at).toLocaleDateString();
+                    const outline = eval.user_outline.substring(0, 50) + '...';
+                    const scoreClass = `score-${eval.score_category.toLowerCase().replace(' ', '-')}`;
+                    
+                    return `
+                        <tr>
+                            <td>${date}</td>
+                            <td title="${eval.user_outline}">${outline}</td>
+                            <td>${eval.user_preferences}</td>
+                            <td><span class="score-badge">${eval.doc_type}</span></td>
+                            <td><strong>${eval.overall_score}</strong></td>
+                            <td><span class="score-badge ${scoreClass}">${eval.score_category}</span></td>
+                            <td>$${eval.cost_usd.toFixed(4)}</td>
+                            <td><a href="/api/report/${eval.id}" class="download-btn">Download</a></td>
+                        </tr>
+                    `;
+                }).join('');
+                
+            } catch (error) {
+                console.error('Error loading evaluations:', error);
+            }
+        }
+        
+        // Load rubric
+        async function loadRubric() {
+            try {
+                const response = await fetch('/api/rubric');
+                const rubric = await response.json();
+                
+                const container = document.getElementById('rubric-container');
+                container.innerHTML = Object.entries(rubric).map(([dim, data]) => `
+                    <div class="rubric-item">
+                        <div class="rubric-name">${dim.replace(/_/g, ' ').toUpperCase()}</div>
+                        <div class="rubric-desc">${data.description}</div>
+                        <label>
+                            Weight: 
+                            <input type="number" 
+                                   class="rubric-weight" 
+                                   data-dimension="${dim}"
+                                   value="${data.weight}" 
+                                   min="0" 
+                                   max="100"
+                                   onchange="updateTotalWeight()">
+                            %
+                        </label>
+                    </div>
+                `).join('');
+                
+                updateTotalWeight();
+            } catch (error) {
+                console.error('Error loading rubric:', error);
+            }
+        }
+        
+        // Update total weight
+        function updateTotalWeight() {
+            const weights = document.querySelectorAll('.rubric-weight');
+            const total = Array.from(weights).reduce((sum, input) => sum + parseInt(input.value || 0), 0);
+            document.getElementById('total-weight').textContent = total;
+            
+            // Highlight if not 100
+            const display = document.getElementById('total-weight').parentElement;
+            if (total !== 100) {
+                display.style.background = '#fff3cd';
+                display.style.color = '#856404';
+            } else {
+                display.style.background = '#d4edda';
+                display.style.color = '#155724';
+            }
+        }
+        
+        // Save rubric
+        async function saveRubric() {
+            const weights = document.querySelectorAll('.rubric-weight');
+            const rubric = {};
+            
+            weights.forEach(input => {
+                const dim = input.dataset.dimension;
+                rubric[dim] = {
+                    weight: parseInt(input.value),
+                    description: input.closest('.rubric-item').querySelector('.rubric-desc').textContent
+                };
+            });
+            
+            try {
+                const response = await fetch('/api/rubric', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(rubric)
+                });
+                
+                if (response.ok) {
+                    showAlert('Rubric saved successfully!', 'success');
+                } else {
+                    showAlert('Error saving rubric', 'error');
+                }
+            } catch (error) {
+                showAlert('Error saving rubric: ' + error.message, 'error');
+            }
+        }
+        
+        // Submit evaluation
+        document.getElementById('evaluation-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const jsonFile = document.getElementById('json-file').files[0];
+            const pdfFile = document.getElementById('pdf-file').files[0];
+            
+            if (!jsonFile || !pdfFile) {
+                showAlert('Please upload both JSON and PDF files', 'error');
+                return;
+            }
+            
+            const formData = new FormData();
+            formData.append('json_file', jsonFile);
+            formData.append('pdf_file', pdfFile);
+            
+            // Show progress
+            document.getElementById('submit-btn').disabled = true;
+            document.getElementById('progress-container').classList.add('active');
+            document.getElementById('alert-container').innerHTML = '';
+            
+            try {
+                const response = await fetch('/api/evaluate', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const result = await response.json();
+                
+                if (response.ok) {
+                    showAlert(`Evaluation complete! Score: ${result.overall_score}/100 (${result.score_category})`, 'success');
+                    document.getElementById('evaluation-form').reset();
+                    loadStats();
+                    loadEvaluations();
+                } else {
+                    showAlert('Error: ' + result.error, 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            } finally {
+                document.getElementById('submit-btn').disabled = false;
+                document.getElementById('progress-container').classList.remove('active');
+            }
+        });
+        
+        // Show alert
+        function showAlert(message, type) {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type}`;
+            alertDiv.textContent = message;
+            
+            const container = document.getElementById('alert-container');
+            container.innerHTML = '';
+            container.appendChild(alertDiv);
+            
+            setTimeout(() => alertDiv.remove(), 5000);
+        }
+        
+        // Initial load
+        loadStats();
+        loadEvaluations();
+        setInterval(loadStats, 30000); // Refresh stats every 30 seconds
+    </script>
+</body>
+</html>
